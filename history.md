@@ -2,7 +2,7 @@
 
 ## subrip
 
-  2019-01-30  0.9.0  Started from srtfix 1.3.1. Added move_to() methods,
+  2019-01-30  0.9.0  Started from srtfix 1.3.1. Added move_to() method,
                      renamed move() to move_by().
 
 ## submanip
