@@ -3,15 +3,14 @@
 
   subrip.py -- classes and methods for SubRip (.srt) handling
 
-  2019-01-30  0.9.0  Started from srtfix 1.3.1. Added move_to() methods,
-                     renamed move() to move_by().
+  2019-01-14  0.9.1  A small stylistic change.
 
 '''
 
 import re
 import codecs
 
-version = '0.9.0'
+version = '0.9.1'
 
 def to_secs(time):
     '''Convert a time string into a float of seconds.
@@ -22,7 +21,7 @@ def to_secs(time):
     # .srt files use a decimal comma (actually, a decimal period works
     # too but let’s standardize here!)
     time = time.replace(',', '.')
-    timepoint = re.compile('^-?(\d+:)?(\d+:)?(\d+.?\d*)$')
+    timepoint = re.compile(r'^-?(\d+:)?(\d+:)?(\d+.?\d*)$')
     m = timepoint.match(time)
     while None in m.groups():
         time = '00:' + time
@@ -75,7 +74,7 @@ class SubtextEntry(object):
     @property
     def dur(self):
         '''Return duration of this entry.'''
-        return self.__outtime - self.__intime
+        return self.outtime - self.intime
 
     @property
     def intime(self):
