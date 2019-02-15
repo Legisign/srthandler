@@ -17,6 +17,8 @@
 import sys
 import os
 import getopt
+
+# This is just to shorten helper function calls:
 from subrip import *
 
 # Constants

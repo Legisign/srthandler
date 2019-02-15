@@ -316,4 +316,3 @@ if __name__ == '__main__':
             print('Non-numeric index on line {}'.format(exc))
         else:
             print(str(srt))
-y
