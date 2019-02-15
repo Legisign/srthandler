@@ -3,14 +3,23 @@
 
   subrip.py -- classes and methods for SubRip (.srt) handling
 
-  2019-01-14  0.9.1  A small stylistic change.
+  2019-02-15  0.9.2  ‘text’ in SubtextEntry is now a @property and always
+                     looks like a string from the user’s point of view; this
+                     makes it easier to find text (but also the parser method
+                     more complex). All functions that accept time arguments
+                     now accept both time strings and numerics. More nuanced
+                     parse error exceptions. Bug fix: SubtextEntry.insert()
+                     only modified a local reference; now it calls
+                     super().insert() which works.
 
 '''
 
 import re
 import codecs
 
-version = '0.9.1'
+version = '0.9.2'
+
+# HELPER FUNCTIONS
 
 def to_secs(time):
     '''Convert a time string into a float of seconds.
@@ -45,8 +54,20 @@ def to_timestr(seconds):
         secs = '0' + secs
     return hrs + ':' + mins + ':' + secs
 
+# EXCEPTIONS
+
 class ParseError(Exception):
     pass
+
+class IndexLineError(ParseError):
+    '''Parse error: subtitle’s index is not a number.'''
+    pass
+
+class TimeLineError(ParseError):
+    '''Parse error: time line cannot be parsed correctly.'''
+    pass
+
+# CLASSES
 
 class SubtextEntry(object):
     '''Object holding a single subtitle text.
@@ -57,19 +78,12 @@ class SubtextEntry(object):
     def __init__(self, intime=0.0, outtime=0.0, text=None):
         self.intime = intime
         self.outtime = outtime
-        if isinstance(text, list):
-            self.text = text
-        elif isinstance(text, str):
-            self.text = [text]
-        elif text is None:
-            self.text = []
-        else:
-            raise ValueError(text)
+        self.text = text
 
     def __str__(self):
         intime = to_timestr(self.intime)
         outtime = to_timestr(self.outtime)
-        return '\n'.join(['{} --> {}'.format(intime, outtime)] + self.text)
+        return '{} --> {}\n'.format(intime, outtime) + self.text
 
     @property
     def dur(self):
@@ -91,11 +105,15 @@ class SubtextEntry(object):
 
     def move_by(self, offset):
         '''Move subtitle by offset (seconds).'''
+        if isinstance(offset, str):
+            offset = to_secs(offset)
         self.intime += offset
         self.outtime += offset
 
     def move_to(self, pos=0.0):
         '''Move subtitle to pos (seconds).'''
+        if isinstance(pos, str):
+            pos = to_secs(pos)
         dur = self.dur
         self.intime = pos
         self.outtime = pos + dur
@@ -113,8 +131,23 @@ class SubtextEntry(object):
         else:
             raise ValueError(outtime)
 
+    @property
+    def text(self):
+        return '\n'.join(self.__text)
+
+    @text.setter
+    def text(self, text):
+        if text is None:
+            self.__text = []
+        elif isinstance(text, str):
+            self.__text = [text]
+        elif isinstance(text, list):
+            self.__text = text
+        else:
+            raise ValueError(text)
+
 class SubtextLayer(list):
-    '''List of SubTextEntry objects.'''
+    '''List of SubtextEntry objects.'''
 
     def __init__(self, filename=None, start_from=1):
         self.start_from = start_from
@@ -122,7 +155,7 @@ class SubtextLayer(list):
             self.read(filename)
 
     def __str__(self):
-        return '\n'.join(['{}\n{}\n'.format(i + self.start_from, s) \
+        return '\n'.join(['{}\n{}\n'.format(i + self.start_from, str(s)) \
             for i, s in enumerate(self)])
 
     def check(self):
@@ -136,25 +169,50 @@ class SubtextLayer(list):
                 log[no + 2] = 'duration <= 0'
         return log
 
-    def insert(self, intime=0.0, outtime=0.0, text=None):
+    def insert(self, intime=0.0, outtime=0.0, dur=0.0, text=None):
         '''Insert a new record in the layer.'''
-        new = SubTextEntry(intime, outtime, text)
-        if not self or self[-1].intime > intime:
+        if isinstance(intime, str):
+            intime = to_secs(intime)
+        if isinstance(outtime, str):
+            outtime = to_secs(outtime)
+        if isinstance(dur, str):
+            dur = to_secs(dur)
+        if outtime < 0.001 and dur > 0.001:
+            outtime = intime + dur
+        new = SubtextEntry(intime, outtime, text)
+        if self == []:
+            self.append(new)
+        elif self[-1].intime < intime:
+            # Fix overlapping instantly
+            if self[-1].outtime > intime:
+                self[-1].outtime = intime
             self.append(new)
         else:
-            for i, entry in enumerate(self):
-                if entry.intime > intime:
+            for i, ref in enumerate(self):
+                if ref.intime > intime:
                     break
-            self = self[:i] + [new] + self[i:]
+            # self = self[:i] + [new] + self[i:]
+            super().insert(i, new)
+            # Fix overlapping instantly
+            if ref.outtime > intime:
+                ref.outtime = intime
 
     def move_by(self, offset, start=0.0):
         '''Move the layer by offset (seconds) starting from given time.'''
+        if isinstance(offset, str):
+            offset = to_secs(offset)
+        if isinstance(start, str):
+            start = to_secs(start)
         for sub in self:
             if sub.intime >= start:
                 sub.move_by(offset)
 
     def move_to(self, pos=0.0, start=0.0):
         '''Move the layer to pos (seconds) starting from given time.'''
+        if isinstance(pos, str):
+            pos = to_secs(pos)
+        if isinstance(start, str):
+            start = to_secs(start)
         for sub in self:
             if sub.intime >= start:
                 offset = pos - sub.intime
@@ -171,6 +229,7 @@ class SubtextLayer(list):
         #   text : waiting for actual content
         state = 'rec#'
         curr = None
+        text = []
         for lineno, line in enumerate(buff):
             line = line.strip()
             if state == 'rec#':
@@ -178,8 +237,7 @@ class SubtextLayer(list):
                     curr = SubtextEntry()
                     state = 'time'
                 elif line:
-                    print('rec#, line != numeric')
-                    raise ParseError(lineno)
+                    raise IndexLineError(lineno)
             elif state == 'time':
                 if timeline.match(line):
                     m = timeline.match(line)
@@ -187,17 +245,21 @@ class SubtextLayer(list):
                     curr.outtime = m.group('outtime')
                     state = 'text'
                 else:
-                    print('time, line !~ timeline')
-                    raise ParseError(lineno)
+                    raise TimeLineError(lineno)
             elif state == 'text':
                 if not line:
+                    if text:
+                        curr.text = text
+                        text = []
                     self.append(curr)
                     state = 'rec#'
                     curr = None
                 else:
-                    curr.text.append(line)
+                    text.append(line)
         # Handle the last entry
         if curr:
+            if text:
+                curr.text = text
             self.append(curr)
 
     def read(self, filename):
@@ -214,6 +276,10 @@ class SubtextLayer(list):
 
     def sync(self, startpoint, endpoint):
         '''Synchronize layer between given timepoints (in seconds).'''
+        if isinstance(startpoint, str):
+            startpoint = to_secs(startpoint)
+        if isinstance(endpoint, str):
+            endpoint = to_secs(endpoint)
         first, *_, last = self
         first.intime = startpoint
         first.outtime = startpoint + first.dur
@@ -232,5 +298,21 @@ class SubtextLayer(list):
         with open(self.filename, 'w') as srtfile:
             srtfile.write(str(self))
 
+# A simple read-parse-print loop for test purposes
+# (note: renumbers the subtitles!)
 if __name__ == '__main__':
-    pass
+    import sys
+
+    for arg in sys.argv[1:]:
+        try:
+            srt = SubtextLayer(arg)
+        except (FileNotFoundError, PermissionError):
+            print('Not found or cannot be read: "{}"'.format(arg))
+        except IOError:
+            print('General I/O error: "{}"'.format(arg))
+        except TimeLineError as exc:
+            print('Incorrect time line on line {}'.format(exc))
+        except IndexLineError as exc:
+            print('Non-numeric index on line {}'.format(exc))
+        else:
+            print(str(srt))
