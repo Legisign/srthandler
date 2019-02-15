@@ -7,7 +7,7 @@
                      makes it easier to find text (but also the parser method
                      more complex). All functions that accept time arguments
                      now accept both time strings and numerics. More nuanced
-                     parse error exceptions. Bug fix: SubtextEntry.insert()
+                     parse error exceptions. Bug fix: SubtextLayer.insert()
                      only modified a local reference; now it calls
                      super().insert() which works.
   2019-02-14  0.9.1  A small stylistic change.
