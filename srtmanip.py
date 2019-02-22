@@ -130,8 +130,10 @@ for arg in args:
         die('Ei oikeutta lukea: "{}"'.format(arg))
     except IOError as exc:
         die('Yleinen tiedostovirhe: "{}"'.format(arg))
-    except ParseError as exc:
-        die('Jäsennysvirhe: "{}", rivi {}'.format(arg, exc.args[0] + 1))
+    except IndexLineError as exc:
+        die('Virheellinen indeksi: "{}", rivi {}'.format(arg, exc.args[0] + 1))
+    except TimeLineError as exc:
+        die('Virheellinen aikarivi: "{}", rivi {}'.format(arg, exc.args[0] + 1))
     if actions == 'c':
         msgs = subs.check()
         if msgs:
