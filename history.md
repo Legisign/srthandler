@@ -2,6 +2,10 @@
 
 ## subrip
 
+### 2019-02-27, version 0.9.3
+
+Bug fix: to_secs() couldn’t handle negative values unless they were “complete”, meaning had all the parts (hours, minutes and seconds).
+
 ### 2019-02-15, version 0.9.2
 
 `text` in `SubtextEntry` is now a `@property` and always looks like a `str` from the user’s point of view; this makes it easier to find text (but also the parser method more complex). All functions that accept time arguments now accept both time strings and numerics. More nuanced parse error exceptions. Bug fix: `SubtextLayer.insert()` only modified a local reference; now it calls `super().insert()` which works.

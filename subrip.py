@@ -3,21 +3,16 @@
 
   subrip.py -- classes and methods for SubRip (.srt) handling
 
-  2019-02-15  0.9.2  ‘text’ in SubtextEntry is now a @property and always
-                     looks like a string from the user’s point of view; this
-                     makes it easier to find text (but also the parser method
-                     more complex). All functions that accept time arguments
-                     now accept both time strings and numerics. More nuanced
-                     parse error exceptions. Bug fix: SubtextLayer.insert()
-                     only modified a local reference; now it calls
-                     super().insert() which works.
+  2019-02-27  0.9.3  Bug fix: to_secs() couldn’t handle negative values unless
+                     they were “complete”, meaning had all the parts (hours,
+                     minutes and seconds).
 
 '''
 
 import re
 import codecs
 
-version = '0.9.2'
+version = '0.9.3'
 
 # HELPER FUNCTIONS
 
@@ -25,20 +20,26 @@ def to_secs(time):
     '''Convert a time string into a float of seconds.
 
     Time can be in the format [[00]:00:]00[,000] for hours, minutes,
-    seconds and parts of seconds.
+    seconds and parts of seconds. The function raises ValueError if the
+    string cannot be converted.
     '''
     # .srt files use a decimal comma (actually, a decimal period works
     # too but let’s standardize here!)
-    time = time.replace(',', '.')
-    timepoint = re.compile(r'^-?(\d+:)?(\d+:)?(\d+.?\d*)$')
+    if time.startswith('-'):
+        sign = -1
+        time = time[1:]
+    else:
+        sign = 1
+    timepoint = re.compile(r'^(\d+:)?(\d+:)?(\d+[.,]?\d*)$')
     m = timepoint.match(time)
+    if not m:
+        raise ValueError
     while None in m.groups():
         time = '00:' + time
         m = timepoint.match(time)
-    hours, mins, secs = [float(p.rstrip(':')) for p in m.groups()]
-    if time.startswith('-'):
-        hours = -hours
-    return hours * 3600 + mins * 60 + secs
+    hours, mins, secs = [float(p.rstrip(':').replace(',', '.')) \
+                         for p in m.groups()]
+    return sign * (hours * 3600 + mins * 60 + secs)
 
 def to_timestr(seconds):
     '''Convert seconds (float) to a time string.
@@ -57,6 +58,7 @@ def to_timestr(seconds):
 # EXCEPTIONS
 
 class ParseError(Exception):
+    '''General parse error'''
     pass
 
 class IndexLineError(ParseError):
@@ -101,7 +103,7 @@ class SubtextEntry(object):
         elif isinstance(intime, str):
             self.__intime = to_secs(intime)
         else:
-            raise ValueError(intime)
+            raise TypeError(intime)
 
     def move_by(self, offset):
         '''Move subtitle by offset (seconds).'''
@@ -129,7 +131,7 @@ class SubtextEntry(object):
         elif isinstance(outtime, str):
             self.__outtime = to_secs(outtime)
         else:
-            raise ValueError(outtime)
+            raise TypeError(outtime)
 
     @property
     def text(self):
@@ -144,7 +146,7 @@ class SubtextEntry(object):
         elif isinstance(text, list):
             self.__text = text
         else:
-            raise ValueError(text)
+            raise TypeError(text)
 
 class SubtextLayer(list):
     '''List of SubtextEntry objects.'''
