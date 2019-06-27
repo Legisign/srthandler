@@ -1,11 +1,54 @@
 # subrip
 
-SubRip (`.srt`) handling in Python.
+SubRip (`.srt`) handling in Python. A whole SubRip file is represented as one `SubtextLayer` object, a `list` consisting of `SubtextEntry` objects.
 
-## subrip
+## Copyleft
 
-`subrip.py` contains classes and helper functions for manipulating SubRip (.srt) subtitle files.
+Copyright © 2019, Legisign.org, Tommi Nieminen
 
-## srtmanip
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-`srtmanip.py` is sample program for making changes in SubRip subtitles. Its only dependency is `subrip.py`. Subtitles can be moved, positioned and stretched to fill a given time interval.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+## SubtextLayer
+
+`SubtextLayer` is a `list` of `SubtextEntry` objects.
+
+### SubtextLayer methods
+
+* `check()` -- check integrity of the subtext layer
+* `insert()` -- insert a new entry
+* `move_by()` -- move given entries by given offset forwards or backwards
+* `move_to()` -- move given entries to a given position in time
+* `parse()` -- parse string as subtext layer
+* `read()` -- read and parse a subtext file
+* `sync()` -- tries to synchronize entries between given timepoints
+* `write()` -- write a subtext
+
+## SubtextEntry
+
+`SubtextEntry` is an object holding a single subtext frame with its in- and out-times and lines of text (as a list of strings).
+
+### SubtextEntry properties
+
+* `dur` -- duration of entry
+* `intime` -- intime of entry
+* `outtime` -- outtime of entry
+* `text` -- text of entry (as a string)
+
+### SubtextEntry methods
+
+* `move_by()` -- adjust times by offset
+* `move_to()` -- set in- and outtimes
+
+## Helper functions
+
+### to_secs()
+
+`to_secs(time_string)` converts a string in SubRip time format [[[dd:]hh:]mm:]ss[,fff] (days, hours, minutes, seconds, fractions of seconds) into seconds.
+
+### to_timestr()
+
+`to_timestr(seconds)` converts seconds (`float`) to SubRip time format [[[dd:]hh:]mm:]ss[,fff].

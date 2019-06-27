@@ -12,7 +12,7 @@
 import re
 import codecs
 
-version = '0.9.3'
+version = '1.0'
 
 # HELPER FUNCTIONS
 
@@ -299,22 +299,3 @@ class SubtextLayer(list):
                 raise ValueError(self.filename)
         with open(self.filename, 'w') as srtfile:
             srtfile.write(str(self))
-
-# A simple read-parse-print loop for test purposes
-# (note: renumbers the subtitles!)
-if __name__ == '__main__':
-    import sys
-
-    for arg in sys.argv[1:]:
-        try:
-            srt = SubtextLayer(arg)
-        except (FileNotFoundError, PermissionError):
-            print('Not found or cannot be read: "{}"'.format(arg))
-        except IOError:
-            print('General I/O error: "{}"'.format(arg))
-        except TimeLineError as exc:
-            print('Incorrect time line on line {}'.format(exc))
-        except IndexLineError as exc:
-            print('Non-numeric index on line {}'.format(exc))
-        else:
-            print(str(srt))
