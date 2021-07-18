@@ -1,10 +1,10 @@
-# subrip
+# srthandler (version 0.9.5)
 
-SubRip (`.srt`) handling in Python. A whole SubRip file is represented as one `SubtextLayer` object, a `list` consisting of `SubtextEntry` objects.
+`srthandler` is a `.srt` (a.k.a SubRip) subtext file handler written in Python. A whole `.srt` file is represented as one `SubtextLayer` object, a `list` consisting of `SubtextEntry` objects.
 
 ## Copyleft
 
-Copyright © 2019, Legisign.org, Tommi Nieminen
+Copyright © 2019–2021, Legisign.org, Tommi Nieminen
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
