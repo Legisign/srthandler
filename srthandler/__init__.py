@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 '''
 
-  subrip.py -- classes and methods for SubRip (.srt) handling
+  srthandler -- classes and methods for SubRip (.srt) handling
 
-  2019-02-27  0.9.3  Bug fix: to_secs() couldn’t handle negative values unless
-                     they were “complete”, meaning had all the parts (hours,
-                     minutes and seconds).
+  2021-07-18  0.9.5  Utilizing f-strings.
 
 '''
 
 import re
 import codecs
 
-version = '1.0'
+version = '0.9.5'
 
 # HELPER FUNCTIONS
 
@@ -37,8 +35,8 @@ def to_secs(time):
     while None in m.groups():
         time = '00:' + time
         m = timepoint.match(time)
-    hours, mins, secs = [float(p.rstrip(':').replace(',', '.')) \
-                         for p in m.groups()]
+    to_float = lambda s: float(s.rstrip(':').replace(',', '.'))
+    hours, mins, secs = [to_float(p) for p in m.groups()]
     return sign * (hours * 3600 + mins * 60 + secs)
 
 def to_timestr(seconds):
@@ -47,13 +45,13 @@ def to_timestr(seconds):
     The resulting string is in the format [[00:]00:]00[,000] for hours,
     minutes, seconds, and parts of seconds.
     '''
-    hrs = '{:02d}'.format(int(seconds // 3600))
-    mins = '{:02d}'.format(int(seconds % 3600) // 60)
-    secs = '{:.3f}'.format(seconds % 60).replace('.', ',')
-    # Python cannot zero-pad floats!
-    if secs.index(',') == 1:
-        secs = '0' + secs
-    return hrs + ':' + mins + ':' + secs
+    hrs = f'{seconds // 3600:02d}'
+    mins = f'{(seconds % 3600) // 60}:02d'
+    secs = f'{(seconds % 60):06.3f}'.replace('.', ',')
+    # # Python cannot zero-pad floats!
+    # if secs.index(',') == 1:
+    #     secs = '0' + secs
+    return f'{hrs}:{mins}:{secs}'
 
 # EXCEPTIONS
 
@@ -83,9 +81,7 @@ class SubtextEntry(object):
         self.text = text
 
     def __str__(self):
-        intime = to_timestr(self.intime)
-        outtime = to_timestr(self.outtime)
-        return '{} --> {}\n'.format(intime, outtime) + self.text
+        return f'{to_timestr(self.intime)} --> {to_timestr(self.outtime)}\n{self.text}'
 
     @property
     def dur(self):
@@ -193,9 +189,8 @@ class SubtextLayer(list):
             for i, ref in enumerate(self):
                 if ref.intime > intime:
                     break
-            # self = self[:i] + [new] + self[i:]
             super().insert(i, new)
-            # Fix overlapping instantly
+            # Fix overlaps instantly
             if ref.outtime > intime:
                 ref.outtime = intime
 
@@ -235,19 +230,17 @@ class SubtextLayer(list):
         for lineno, line in enumerate(buff):
             line = line.strip()
             if state == 'rec#':
-                if line.isnumeric():
-                    curr = SubtextEntry()
-                    state = 'time'
-                elif line:
+                if not line.isnumeric():
                     raise IndexLineError(lineno)
+                curr = SubtextEntry()
+                state = 'time'
             elif state == 'time':
-                if timeline.match(line):
-                    m = timeline.match(line)
-                    curr.intime = m.group('intime')
-                    curr.outtime = m.group('outtime')
-                    state = 'text'
-                else:
+                m = timeline.match(line)
+                if not m:
                     raise TimeLineError(lineno)
+                curr.intime = m.group('intime')
+                curr.outtime = m.group('outtime')
+                state = 'text'
             elif state == 'text':
                 if not line:
                     if text:
