@@ -27,6 +27,8 @@ def to_secs(time):
     # too but let’s standardize here!)
     if isinstance(time, (float, int)):
         return time
+    if not isinstance(time, str):
+        raise TypeError(f'not a number or string: {time}')
     if time.startswith('-'):
         sign = -1
         time = time[1:]
@@ -49,12 +51,11 @@ def to_timestr(seconds):
     The resulting string is in the format [[00:]00:]00[,000] for hours,
     minutes, seconds, and parts of seconds.
     '''
-    hrs = f'{seconds // 3600:02d}'
-    mins = f'{(seconds % 3600) // 60}:02d'
+    if not isinstance(seconds, (float, int)):
+        raise TypeError(f'not a number: {seconds}')
+    hrs = f'{int(seconds) // 3600:02d}'
+    mins = f'{(int(seconds) % 3600) // 60:02d}'
     secs = f'{(seconds % 60):06.3f}'.replace('.', ',')
-    # # Python cannot zero-pad floats!
-    # if secs.index(',') == 1:
-    #     secs = '0' + secs
     return f'{hrs}:{mins}:{secs}'
 
 # EXCEPTIONS
@@ -79,7 +80,7 @@ class ParserState(enum.Enum):
     TIME = enum.auto()      # waiting for the timepoint
     TEXT = enum.auto()      # waiting for the text
 
-class SubtextEntry(object):
+class Entry(object):
     '''Object holding a single subtitle text.
 
     Object’s properties are the in-time and out-time the subtitle (in
@@ -144,8 +145,8 @@ class SubtextEntry(object):
         else:
             raise TypeError(text)
 
-class SubtextLayer(list):
-    '''List of SubtextEntry objects.'''
+class Subtext(list):
+    '''List of Entry objects.'''
 
     def __init__(self, filename=None, start_from=1):
         self.start_from = start_from
@@ -157,7 +158,9 @@ class SubtextLayer(list):
             for i, s in enumerate(self)])
 
     def check(self):
-        '''A simple check of the correctness of the subtext layer.'''
+        '''A simple check of the correctness of the subtext layer.
+
+        If no errors found, returns empty dict.'''
         log = {}
         for lineno, pair in enumerate(zip(self, self[1:]), 2):
             prev, this = pair
@@ -172,15 +175,12 @@ class SubtextLayer(list):
         intime = to_secs(intime)
         outtime = to_secs(outtime)
         dur = to_secs(dur)
+        # This checks if `outtime` wasn’t given but `dur` was.
+        # As they are `float`, checking strict equality is to be avoided.
         if outtime < 0.001 and dur > 0.001:
             outtime = intime + dur
-        new = SubtextEntry(intime=intime, outtime=outtime, text=text)
+        new = Entry(intime=intime, outtime=outtime, text=text)
         if self == []:
-            self.append(new)
-        elif self[-1].intime < intime:
-            # Fix overlap instantly
-            if self[-1].outtime > intime:
-                self[-1].outtime = intime
             self.append(new)
         else:
             for i, ref in enumerate(self):
@@ -193,20 +193,16 @@ class SubtextLayer(list):
 
     def move_by(self, offset, start=0.0):
         '''Move the layer by offset (seconds) starting from given time.'''
-        if isinstance(offset, str):
-            offset = to_secs(offset)
-        if isinstance(start, str):
-            start = to_secs(start)
+        offset = to_secs(offset)
+        start = to_secs(start)
         for sub in self:
             if sub.intime >= start:
                 sub.move_by(offset)
 
     def move_to(self, pos=0.0, start=0.0):
         '''Move the layer to pos (seconds) starting from given time.'''
-        if isinstance(pos, str):
-            pos = to_secs(pos)
-        if isinstance(start, str):
-            start = to_secs(start)
+        pos = to_secs(pos)
+        start = to_secs(start)
         for sub in self:
             if sub.intime >= start:
                 offset = pos - sub.intime
@@ -225,7 +221,7 @@ class SubtextLayer(list):
             if state == ParserState.REC:
                 if not line.isnumeric():
                     raise IndexLineError(lineno)
-                curr = SubtextEntry()
+                curr = Entry()
                 state = ParserState.TIME
             elif state == ParserState.TIME:
                 m = timeline.match(line)
