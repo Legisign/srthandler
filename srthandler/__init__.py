@@ -37,7 +37,7 @@ def to_secs(time):
     timepoint = re.compile(r'^(\d+:)?(\d+:)?(\d+[.,]?\d*)$')
     m = timepoint.match(time)
     if not m:
-        raise ValueError
+        raise ValueError(f'cannot be parsed as time: {time}')
     while None in m.groups():
         time = '00:' + time
         m = timepoint.match(time)
@@ -62,7 +62,8 @@ def to_timestr(seconds):
 
 class ParseError(Exception):
     '''General parse error'''
-    pass
+    def __init__(self, lineno=0):
+        self.lineno = lineno
 
 class IndexLineError(ParseError):
     '''Parse error: subtitle’s index is not a number.'''
@@ -143,7 +144,7 @@ class Entry(object):
         elif isinstance(text, list):
             self.__text = text
         else:
-            raise TypeError(text)
+            raise TypeError(f'invalid type: {text}')
 
 class Subtext(list):
     '''List of Entry objects.'''
@@ -274,10 +275,9 @@ class Subtext(list):
 
     def write(self, filename=None):
         '''Write the layer to a file.'''
-        if not self.filename:
-            if filename:
+        if not self.filename and filename:
                 self.filename = filename
-            else:
-                raise ValueError(self.filename)
+        if not self.filename:
+            raise ValueError('Entry.Subtext.write(): no filename')
         with open(self.filename, 'w') as srtfile:
             srtfile.write(str(self))
