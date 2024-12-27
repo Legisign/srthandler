@@ -1,22 +1,33 @@
 # srthandler
 
-`srthandler` is a `.srt` (a.k.a SubRip) subtext file handler written in Python. A whole `.srt` file is represented as one `SubtextLayer` object, a `list` consisting of `SubtextEntry` objects.
+`srthandler` is an `.srt` (a.k.a SubRip) subtext file handler written in
+Python. A whole `.srt` file is represented as one `SubtextLayer` object,
+a `list` consisting of `SubtextEntry` objects.
 
 ## Copyleft
 
-Copyright © 2019–2022, Legisign.org, Tommi Nieminen
+Copyright © 2019–2024, Legisign.org, Tommi Nieminen
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+for more details.
 
-You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ## New in version 0.9.6
 
-In addition to internal changes, the public object names were changed. The new names are `Subtext` (was `SubtextLayer`) and `Entry` (was `SubtextEntry`).
+In addition to internal changes, the public object names were
+changed. The new names are `Subtext` (was `SubtextLayer`) and `Entry`
+(was `SubtextEntry`).
 
-## `Subtext`
+## `Subtext` class
 
 `Subtext` is a `list` of `Entry` objects.
 
@@ -33,7 +44,8 @@ In addition to internal changes, the public object names were changed. The new n
 
 ## `Entry`
 
-`Entry` is an object holding a single subtext frame with its in- and out-times and lines of text (as a list of strings).
+`Entry` is an object holding a single subtext frame with its in- and
+out-times and lines of text (as a list of strings).
 
 ### Properties
 
@@ -51,8 +63,17 @@ In addition to internal changes, the public object names were changed. The new n
 
 ### `to_secs()`
 
-`to_secs(time_string)` converts a string in SubRip time format `[[[dd:]hh:]mm:]ss[,fff]` (days, hours, minutes, seconds, fractions of seconds) into seconds. If called with a numeric value, returns the value.
+`to_secs(time_string)` converts a string in SubRip time format
+`[[[dd:]hh:]mm:]ss[,fff]` (days, hours, minutes, seconds, fractions of
+seconds) into seconds. If called with a numeric value, returns the value.
 
 ### `to_timestr()`
 
-`to_timestr(seconds)` converts seconds (`float`) to SubRip time format `[[[dd:]hh:]mm:]ss[,fff]`.
+`to_timestr(seconds)` converts seconds (`float`) to SubRip time format
+`[[[dd:]hh:]mm:]ss[,fff]`.
+
+## Exceptions
+
+* `ParseError` -- error parsing the file
+* `IndexError` -- invalid index
+* `TimeStampError` -- invalid time stamp

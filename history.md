@@ -1,5 +1,9 @@
 # `srthandler` History
 
+## 1.0 (2024-12-27)
+
+Exceptions renamed, declared 1.0.
+
 ## 0.9.5 (2021-07-18)
 
 Utilizing f–strings.

@@ -5,6 +5,7 @@
 
   2021-07-18  0.9.5  Utilizing f-strings.
   2021-07-27  0.9.6  More f-strings, enums.
+  2024-12-27  1.0    Exceptions renamed, declared 1.0.
 
 '''
 
@@ -12,7 +13,7 @@ import re
 import codecs
 import enum
 
-version = '0.9.6'
+version = '1.0'
 
 # HELPER FUNCTIONS
 
@@ -65,11 +66,11 @@ class ParseError(Exception):
     def __init__(self, lineno=0):
         self.lineno = lineno
 
-class IndexLineError(ParseError):
+class IndexError(ParseError):
     '''Parse error: subtitle’s index is not a number.'''
     pass
 
-class TimeLineError(ParseError):
+class TimeStampError(ParseError):
     '''Parse error: time line cannot be parsed correctly.'''
     pass
 
@@ -221,13 +222,13 @@ class Subtext(list):
             line = line.strip()
             if state == ParserState.REC:
                 if not line.isnumeric():
-                    raise IndexLineError(lineno)
+                    raise IndexError(lineno)
                 curr = Entry()
                 state = ParserState.TIME
             elif state == ParserState.TIME:
                 m = timeline.match(line)
                 if not m:
-                    raise TimeLineError(lineno)
+                    raise TimeStampError(lineno)
                 curr.intime = m.group('intime')
                 curr.outtime = m.group('outtime')
                 state = ParserState.TEXT
